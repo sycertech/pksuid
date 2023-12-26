@@ -1,0 +1,5 @@
+comment = 'postgresql plugin for generating prefixed ksuids'
+default_version = '@CARGO_VERSION@'
+module_pathname = '$libdir/prefixed_ksuid'
+relocatable = false
+superuser = false

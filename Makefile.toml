@@ -1,0 +1,70 @@
+[tasks.setup]
+script = '''
+    echo installing git hooks
+    pre-commit --version || pip install pre-commit
+    pre-commit install || echo "failed to install git hooks!" 1>&2
+
+    echo installing stuff for tests
+    cargo binstall -y cargo-nextest
+
+	echo installing shit for pgrx
+	cargo install cargo-pgrx
+'''
+
+[tasks.dev]
+command = "cargo"
+env_files = ["./.env"]
+args = ["run", "-q"]
+watch = true
+
+[tasks.lint]
+install_crate = "clippy"
+command = "cargo"
+args = [
+	"clippy",
+	"--tests",
+	"--examples",
+	"--all-targets",
+	"--features",
+	"pg16 pg_test",
+	"--no-default-features",
+]
+
+[tasks.fmt]
+install_crate = "rustfmt"
+command = "cargo"
+args = ["fmt", "--all"]
+
+[tasks.lint-ci]
+install_crate = "clippy"
+command = "cargo"
+args = [
+	"clippy",
+	"--tests",
+	"--examples",
+	"--all-targets",
+	"--features",
+	"pg16 pg_test",
+	"--no-default-features",
+	"--workspace",
+	"--",
+	"-D",
+	"warnings",
+]
+
+[tasks.fmt-ci]
+install_crate = "rustfmt"
+command = "cargo"
+args = ["fmt", "--all", "--", "--check"]
+
+# runs tests
+[tasks.test]
+env = { RUST_LOG = "info", PGRX_ALL_FEATURES = false, PGRX_BUILD_PROFILE = "dev", PGRX_FEATURES = "pg16 pg_test", PGRX_NO_DEFAULT_FEATURES = true, PGRX_NO_SCHEMA = false }
+command = "cargo"
+args = ["nextest", "run", "--features", "pg16 pg_test", "--no-default-features"]
+
+# runs tests in CI
+[tasks.test-ci]
+env = { "RUN_MODE" = "ci", "RUST_LOG" = "info" }
+command = "cargo"
+args = ["nextest", "run", "--examples", "--all-targets", "--all-features"]

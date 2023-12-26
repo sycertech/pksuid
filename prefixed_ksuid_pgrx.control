@@ -1,5 +1,0 @@
-comment = 'prefixed_ksuid_pgrx:  Created by Carter Himmel <me@fyko.net>'
-default_version = '@CARGO_VERSION@'
-module_pathname = '$libdir/prefixed_ksuid_pgrx'
-relocatable = false
-superuser = true
