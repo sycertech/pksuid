@@ -1,26 +1,34 @@
-# prefixed_ksuid_pgrx
+# pksuid
 
-> a plugin for postgresql providing a type and generation function for prefixed ksuids, similar to that of [Clerk](https://clerk.com/blog/generating-sortable-stripe-like-ids-with-segment-ksuids)
+An extension for PostgreSQL providing a type and generation function for Prefixed KSUIDs, similar to that of [Clerk](https://clerk.com/blog/generating-sortable-stripe-like-ids-with-segment-ksuids) and [Stripe](https://www.quora.com/How-does-Stripe-generate-object-ids)
+
+## Example
 
 ```sql
 postgres=# create extension prefixed_ksuid;
 create extension
 
-postgres=# select prefixedksuid_generate('client');
-       prefixedksuid_generate
+postgres=# select pksuid_generate('client');
+       pksuid_generate
 ------------------------------------
  client_2a40rvcCfXqllp2pWTNr6sH2wns
 
-# TODO: this
+postgres=#
+postgres=#
 postgres=# create table if not exists client(
-    id prefixedksuid primary key default prefixedksuid_generate('client'),
+    id pksuid primary key default pksuid_generate('client'),
     name text
 );
-ERROR:  data type prefixedksuid has no default operator class for access method "btree"
-HINT:  You must specify an operator class for the index or define a default operator class for the data type.
+postgres=# insert into client(name) values('Dave');
+INSERT 0 1
+postgres=# select * from client;
+                 id                 | name
+------------------------------------+------
+ client_2a48v6M9BKq9nBN5MkOREN1YTsl | Dave
+(1 row)
 ```
 
-## roadmap
+## Roadmap
 
 - [x] pgrx plugin
 - [x] sqlx type

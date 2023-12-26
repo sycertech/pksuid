@@ -17,6 +17,11 @@ env_files = ["./.env"]
 args = ["run", "-q"]
 watch = true
 
+[tasks.run-extension]
+install_crate = "cargo-pgrx"
+command = "cargo"
+args = ["pgrx", "run", "-p", "pksuid-extension"]
+
 [tasks.lint]
 install_crate = "clippy"
 command = "cargo"
