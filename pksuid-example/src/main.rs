@@ -2,10 +2,10 @@ use anyhow::Result;
 use pksuid::Pksuid;
 use sqlx::{PgPool, Type};
 
-// #[derive(Debug, Clone, PartialEq, Eq, Hash, Type)]
-// #[sqlx(transparent)]
-// #[sqlx(type_name = "pksuid")]
-// struct SqlxPksuid(pub String);
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Type)]
+#[sqlx(transparent)]
+#[sqlx(type_name = "pksuid")]
+struct SqlxPksuid(pub String);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Client {
@@ -28,8 +28,7 @@ async fn main() -> Result<()> {
 	"#,
 	)
 	.fetch_one(&pool)
-	.await
-	.expect("failed to write");
+	.await?;
 
 	println!("inserted: {:#?}", inserted);
 
@@ -43,8 +42,7 @@ async fn main() -> Result<()> {
 		inserted.id as Pksuid,
 	)
 	.fetch_one(&pool)
-	.await
-	.expect("failed to read");
+	.await?;
 
 	println!("selected: {:#?}", selected);
 

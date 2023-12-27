@@ -8,7 +8,16 @@ The ordering of items is not stable, it is driven by a dependency graph.
 -- bootstrap
 CREATE TYPE pksuid; -- shell type
 
--- pksuid-extension/src/lib.rs:30
+-- pksuid-extension/src/lib.rs:64
+-- pksuid::text_to_pksuid
+CREATE  FUNCTION "text_to_pksuid"(
+	"input" TEXT /* &str */
+) RETURNS pksuid /* core::result::Result<pksuid::Pksuid, alloc::boxed::Box<dyn core::error::Error + core::marker::Send + core::marker::Sync>> */
+IMMUTABLE STRICT PARALLEL SAFE
+LANGUAGE c /* Rust */
+AS 'MODULE_PATHNAME', 'text_to_pksuid_wrapper';
+
+-- pksuid-extension/src/lib.rs:25
 -- pksuid::pksuid_send
 -- requires:
 --   shell_type
@@ -19,7 +28,7 @@ IMMUTABLE STRICT PARALLEL SAFE
 LANGUAGE c /* Rust */
 AS 'MODULE_PATHNAME', 'pksuid_send_wrapper';
 
--- pksuid-extension/src/lib.rs:35
+-- pksuid-extension/src/lib.rs:30
 -- pksuid::pksuid_receive
 -- requires:
 --   shell_type
@@ -30,7 +39,7 @@ IMMUTABLE PARALLEL SAFE
 LANGUAGE c /* Rust */
 AS 'MODULE_PATHNAME', 'pksuid_receive_wrapper';
 
--- pksuid-extension/src/lib.rs:18
+-- pksuid-extension/src/lib.rs:13
 -- pksuid::pksuid_out
 -- requires:
 --   shell_type
@@ -41,7 +50,7 @@ IMMUTABLE STRICT PARALLEL SAFE
 LANGUAGE c /* Rust */
 AS 'MODULE_PATHNAME', 'pksuid_out_wrapper';
 
--- pksuid-extension/src/lib.rs:25
+-- pksuid-extension/src/lib.rs:20
 -- pksuid::pksuid_in
 -- requires:
 --   shell_type
@@ -73,48 +82,37 @@ create type pksuid (
 );
 
 -- pksuid/src/lib.rs:29
--- pksuid::pksuid_ne
-CREATE  FUNCTION "pksuid_ne"(
+-- pksuid::pksuid_le
+CREATE  FUNCTION "pksuid_le"(
 	"left" pksuid, /* pksuid::Pksuid */
 	"right" pksuid /* pksuid::Pksuid */
 ) RETURNS bool /* bool */
 IMMUTABLE STRICT PARALLEL SAFE
 LANGUAGE c /* Rust */
-AS 'MODULE_PATHNAME', 'pksuid_ne_wrapper';
+AS 'MODULE_PATHNAME', 'pksuid_le_wrapper';
 
 -- pksuid/src/lib.rs:29
--- pksuid::pksuid_ne
-CREATE OPERATOR <> (
-	PROCEDURE="pksuid_ne",
+-- pksuid::pksuid_le
+CREATE OPERATOR <= (
+	PROCEDURE="pksuid_le",
 	LEFTARG=pksuid, /* pksuid::Pksuid */
 	RIGHTARG=pksuid, /* pksuid::Pksuid */
-	COMMUTATOR = <>,
-	NEGATOR = =,
-	RESTRICT = neqsel,
-	JOIN = neqjoinsel
+	COMMUTATOR = >=,
+	NEGATOR = >,
+	RESTRICT = scalarlesel,
+	JOIN = scalarlejoinsel
 );
 
--- pksuid/src/lib.rs:29
--- pksuid::pksuid_lt
-CREATE  FUNCTION "pksuid_lt"(
-	"left" pksuid, /* pksuid::Pksuid */
-	"right" pksuid /* pksuid::Pksuid */
-) RETURNS bool /* bool */
+-- pksuid-extension/src/lib.rs:42
+-- pksuid::pksuid_generate
+-- requires:
+--   shell_type
+CREATE  FUNCTION "pksuid_generate"(
+	"prefix" TEXT /* &str */
+) RETURNS pksuid /* pksuid::Pksuid */
 IMMUTABLE STRICT PARALLEL SAFE
 LANGUAGE c /* Rust */
-AS 'MODULE_PATHNAME', 'pksuid_lt_wrapper';
-
--- pksuid/src/lib.rs:29
--- pksuid::pksuid_lt
-CREATE OPERATOR < (
-	PROCEDURE="pksuid_lt",
-	LEFTARG=pksuid, /* pksuid::Pksuid */
-	RIGHTARG=pksuid, /* pksuid::Pksuid */
-	COMMUTATOR = >,
-	NEGATOR = >=,
-	RESTRICT = scalarltsel,
-	JOIN = scalarltjoinsel
-);
+AS 'MODULE_PATHNAME', 'pksuid_generate_wrapper';
 
 -- pksuid/src/lib.rs:29
 -- pksuid::pksuid_cmp
@@ -125,28 +123,6 @@ CREATE  FUNCTION "pksuid_cmp"(
 IMMUTABLE STRICT PARALLEL SAFE
 LANGUAGE c /* Rust */
 AS 'MODULE_PATHNAME', 'pksuid_cmp_wrapper';
-
--- pksuid/src/lib.rs:29
--- pksuid::pksuid_gt
-CREATE  FUNCTION "pksuid_gt"(
-	"left" pksuid, /* pksuid::Pksuid */
-	"right" pksuid /* pksuid::Pksuid */
-) RETURNS bool /* bool */
-IMMUTABLE STRICT PARALLEL SAFE
-LANGUAGE c /* Rust */
-AS 'MODULE_PATHNAME', 'pksuid_gt_wrapper';
-
--- pksuid/src/lib.rs:29
--- pksuid::pksuid_gt
-CREATE OPERATOR > (
-	PROCEDURE="pksuid_gt",
-	LEFTARG=pksuid, /* pksuid::Pksuid */
-	RIGHTARG=pksuid, /* pksuid::Pksuid */
-	COMMUTATOR = <,
-	NEGATOR = <=,
-	RESTRICT = scalargtsel,
-	JOIN = scalargtjoinsel
-);
 
 -- pksuid/src/lib.rs:29
 -- pksuid::pksuid_eq
@@ -195,37 +171,26 @@ CREATE OPERATOR >= (
 );
 
 -- pksuid/src/lib.rs:29
--- pksuid::pksuid_le
-CREATE  FUNCTION "pksuid_le"(
+-- pksuid::pksuid_gt
+CREATE  FUNCTION "pksuid_gt"(
 	"left" pksuid, /* pksuid::Pksuid */
 	"right" pksuid /* pksuid::Pksuid */
 ) RETURNS bool /* bool */
 IMMUTABLE STRICT PARALLEL SAFE
 LANGUAGE c /* Rust */
-AS 'MODULE_PATHNAME', 'pksuid_le_wrapper';
+AS 'MODULE_PATHNAME', 'pksuid_gt_wrapper';
 
 -- pksuid/src/lib.rs:29
--- pksuid::pksuid_le
-CREATE OPERATOR <= (
-	PROCEDURE="pksuid_le",
+-- pksuid::pksuid_gt
+CREATE OPERATOR > (
+	PROCEDURE="pksuid_gt",
 	LEFTARG=pksuid, /* pksuid::Pksuid */
 	RIGHTARG=pksuid, /* pksuid::Pksuid */
-	COMMUTATOR = >=,
-	NEGATOR = >,
-	RESTRICT = scalarlesel,
-	JOIN = scalarlejoinsel
+	COMMUTATOR = <,
+	NEGATOR = <=,
+	RESTRICT = scalargtsel,
+	JOIN = scalargtjoinsel
 );
-
--- pksuid/src/lib.rs:29
--- pksuid::Pksuid
-CREATE OPERATOR FAMILY Pksuid_btree_ops USING btree;
-CREATE OPERATOR CLASS Pksuid_btree_ops DEFAULT FOR TYPE Pksuid USING btree FAMILY Pksuid_btree_ops AS
-	OPERATOR 1 <,
-	OPERATOR 2 <=,
-	OPERATOR 3 =,
-	OPERATOR 4 >=,
-	OPERATOR 5 >,
-	FUNCTION 1 pksuid_cmp(Pksuid, Pksuid);
 
 -- pksuid/src/lib.rs:29
 -- pksuid::pksuid_hash
@@ -243,13 +208,75 @@ CREATE OPERATOR CLASS Pksuid_hash_ops DEFAULT FOR TYPE Pksuid USING hash FAMILY 
 	OPERATOR    1   =  (Pksuid, Pksuid),
 	FUNCTION    1   pksuid_hash(Pksuid);
 
--- pksuid-extension/src/lib.rs:13
--- pksuid::pksuid_generate
--- requires:
---   shell_type
-CREATE  FUNCTION "pksuid_generate"(
-	"prefix" TEXT /* &str */
-) RETURNS pksuid /* pksuid::Pksuid */
+-- pksuid/src/lib.rs:29
+-- pksuid::pksuid_lt
+CREATE  FUNCTION "pksuid_lt"(
+	"left" pksuid, /* pksuid::Pksuid */
+	"right" pksuid /* pksuid::Pksuid */
+) RETURNS bool /* bool */
 IMMUTABLE STRICT PARALLEL SAFE
 LANGUAGE c /* Rust */
-AS 'MODULE_PATHNAME', 'pksuid_generate_wrapper';
+AS 'MODULE_PATHNAME', 'pksuid_lt_wrapper';
+
+-- pksuid/src/lib.rs:29
+-- pksuid::pksuid_lt
+CREATE OPERATOR < (
+	PROCEDURE="pksuid_lt",
+	LEFTARG=pksuid, /* pksuid::Pksuid */
+	RIGHTARG=pksuid, /* pksuid::Pksuid */
+	COMMUTATOR = >,
+	NEGATOR = >=,
+	RESTRICT = scalarltsel,
+	JOIN = scalarltjoinsel
+);
+
+-- pksuid/src/lib.rs:29
+-- pksuid::Pksuid
+CREATE OPERATOR FAMILY Pksuid_btree_ops USING btree;
+CREATE OPERATOR CLASS Pksuid_btree_ops DEFAULT FOR TYPE Pksuid USING btree FAMILY Pksuid_btree_ops AS
+	OPERATOR 1 <,
+	OPERATOR 2 <=,
+	OPERATOR 3 =,
+	OPERATOR 4 >=,
+	OPERATOR 5 >,
+	FUNCTION 1 pksuid_cmp(Pksuid, Pksuid);
+
+-- pksuid-extension/src/lib.rs:69
+-- pksuid::pksuid_to_text
+CREATE  FUNCTION "pksuid_to_text"(
+	"input" pksuid /* pksuid::Pksuid */
+) RETURNS TEXT /* alloc::string::String */
+IMMUTABLE STRICT PARALLEL SAFE
+LANGUAGE c /* Rust */
+AS 'MODULE_PATHNAME', 'pksuid_to_text_wrapper';
+
+-- pksuid/src/lib.rs:29
+-- pksuid::pksuid_ne
+CREATE  FUNCTION "pksuid_ne"(
+	"left" pksuid, /* pksuid::Pksuid */
+	"right" pksuid /* pksuid::Pksuid */
+) RETURNS bool /* bool */
+IMMUTABLE STRICT PARALLEL SAFE
+LANGUAGE c /* Rust */
+AS 'MODULE_PATHNAME', 'pksuid_ne_wrapper';
+
+-- pksuid/src/lib.rs:29
+-- pksuid::pksuid_ne
+CREATE OPERATOR <> (
+	PROCEDURE="pksuid_ne",
+	LEFTARG=pksuid, /* pksuid::Pksuid */
+	RIGHTARG=pksuid, /* pksuid::Pksuid */
+	COMMUTATOR = <>,
+	NEGATOR = =,
+	RESTRICT = neqsel,
+	JOIN = neqjoinsel
+);
+
+-- pksuid-extension/src/lib.rs:73
+-- requires:
+--   text_to_pksuid
+--   pksuid_to_text
+
+
+create cast (text AS pksuid) with function text_to_pksuid as implicit;
+create cast (pksuid AS text) with function pksuid_to_text as implicit;
