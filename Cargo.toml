@@ -4,10 +4,10 @@ resolver = "2"
 
 [workspace.package]
 edition = "2021"
-homepage = "https://github.com/fyko/merriam-webster"
-repository = "https://github.com/fyko/merriam-webster"
-categories = ["api-bindings", "asynchronous", "web-programming::http-client"]
-keywords = ["merriam", "webster", "dictionary"]
+homepage = "https://github.com/sycertech/pksuid"
+repository = "https://github.com/sycertech/pksuid"
+categories = ["database "]
+keywords = ["postgres", "ksuid", "pksuid", "pgrx", "sqlx"]
 license = "MIT OR Apache-2.0"
 authors = ["Carter Himmel <carter@fyko.net>"]
 

@@ -1,10 +1,15 @@
 use anyhow::Result;
 use pksuid::Pksuid;
-use sqlx::PgPool;
+use sqlx::{PgPool, Type};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Type)]
+#[sqlx(transparent)]
+#[sqlx(type_name = "pksuid")]
+struct SqlxPksuid(pub String);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Client {
-	id: Pksuid,
+	id: SqlxPksuid,
 	name: String,
 }
 
@@ -19,7 +24,7 @@ async fn main() -> Result<()> {
 		r#"
 		insert into client (name)
 		values ('Dave')
-		returning id as "id: Pksuid", name;
+		returning id as "id: SqlxPksuid", name;
 	"#,
 	)
 	.fetch_one(&pool)
@@ -30,11 +35,11 @@ async fn main() -> Result<()> {
 	let selected = sqlx::query_as!(
 		Client,
 		r#"
-		select id as "id: Pksuid", name
+		select id as "id: SqlxPksuid", name
 		from client
 		where id = $1;
 	"#,
-		inserted.id.clone() as Pksuid
+		inserted.id.clone() as SqlxPksuid
 	)
 	.fetch_one(&pool)
 	.await?;

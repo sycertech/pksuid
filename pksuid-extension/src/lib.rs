@@ -1,12 +1,63 @@
+use core::ffi::CStr;
+use std::str::FromStr;
+
+use pgrx::pg_sys::StringInfoData;
 use pgrx::prelude::*;
+use pgrx::StringInfo;
+use pksuid::error::BoxDynError;
 use pksuid::Pksuid;
 
 pgrx::pg_module_magic!();
 
-#[pg_extern(immutable, parallel_safe)]
+#[pg_extern(immutable, parallel_safe, requires = ["shell_type"])]
 fn pksuid_generate(prefix: &str) -> Pksuid {
 	Pksuid::new(prefix.to_string())
 }
+
+#[pg_extern(immutable, parallel_safe, requires = ["shell_type"])]
+fn pksuid_out<'a>(value: Pksuid) -> &'a CStr {
+	let mut s = StringInfo::new();
+	s.push_str(&value.to_string());
+	s.into()
+}
+
+#[pg_extern(immutable, parallel_safe, requires = ["shell_type"])]
+fn pksuid_in(input: &CStr) -> Result<Pksuid, BoxDynError> {
+	Pksuid::from_str(input.to_str()?)
+}
+
+#[pg_extern(immutable, parallel_safe, requires = ["shell_type"])]
+fn pksuid_send(input: Pksuid) -> Vec<u8> {
+	input.into()
+}
+
+#[pg_extern(immutable, parallel_safe, requires = ["shell_type"])]
+fn pksuid_receive(internal: pgrx::Internal) -> Pksuid {
+	let string_info = unsafe {
+		let data = internal.get_mut::<StringInfoData>();
+		StringInfo::from_pg(data.unwrap())
+	}
+	.unwrap();
+
+	Pksuid::from_str(&string_info.to_string()).unwrap()
+}
+
+extension_sql!("CREATE TYPE pksuid; -- shell type", name = "shell_type", bootstrap);
+
+extension_sql!(
+	r#"
+		create type pksuid (
+			input = pksuid_in,
+			output = pksuid_out,
+			receive = pksuid_receive,
+			send = pksuid_send,
+			like = text
+		);
+	"#,
+	name = "concrete_type",
+	creates = [Type(Pksuid)],
+	requires = ["shell_type", pksuid_in, pksuid_out, pksuid_receive, pksuid_send],
+);
 
 #[cfg(not(feature = "no-schema-generation"))]
 #[cfg(any(test, feature = "pg_test"))]
