@@ -2,13 +2,16 @@ use std::cmp::Ordering;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::str::FromStr;
 
-use serde::de::{Deserialize, Deserializer};
-use serde::ser::{Serialize, Serializer};
+use error::BoxDynError;
 use svix_ksuid::{Ksuid, KsuidLike};
 
 pub mod error;
-#[cfg(feature = "sqlx")]
+// #[cfg(feature = "sqlx")]
 pub mod sqlx;
+
+pub mod serde;
+
+pub mod pgrx_impl;
 
 // todo: this
 // #[cfg(all(feature = "sqlx", feature = "__pg"))]
@@ -23,8 +26,7 @@ pub mod sqlx;
 		feature = "pg15",
 		feature = "pg16"
 	),
-	derive(pgrx::PostgresOrd, pgrx::PostgresHash, pgrx::PostgresEq, pgrx::PostgresType),
-	inoutfuncs
+	derive(::pgrx::PostgresOrd, ::pgrx::PostgresHash, ::pgrx::PostgresEq,)
 )]
 #[derive(Clone, Debug)]
 pub struct Pksuid {
@@ -68,62 +70,6 @@ impl PartialEq for Pksuid {
 
 impl Eq for Pksuid {}
 
-#[cfg(any(
-	feature = "pg11",
-	feature = "pg12",
-	feature = "pg13",
-	feature = "pg14",
-	feature = "pg15",
-	feature = "pg16"
-))]
-impl pgrx::InOutFuncs for Pksuid {
-	fn input(input: &core::ffi::CStr) -> Self
-	where Self: Sized {
-		let mut parts = input.to_str().unwrap().split('_');
-		let (prefix, ksuid) = (
-			parts.next().expect("prefix missing"),
-			parts.next().expect("ksuid missing"),
-		);
-
-		Self {
-			prefix: prefix.to_string(),
-			ksuid: Ksuid::from_str(ksuid).unwrap(),
-		}
-	}
-
-	fn output(&self, buffer: &mut pgrx::StringInfo) {
-		buffer.push_str(&format!("{}_{}", self.prefix, self.ksuid));
-	}
-}
-
-impl Serialize for Pksuid {
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-	where S: Serializer {
-		serializer.serialize_str(&format!("{}_{}", self.prefix, self.ksuid))
-	}
-}
-
-impl<'de> Deserialize<'de> for Pksuid {
-	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-	where D: Deserializer<'de> {
-		let s = String::deserialize(deserializer)?;
-		let mut parts = s.split('_');
-
-		macro_rules! parse_part {
-			($part:ident, $s:expr, $err:expr) => {
-				let $part = $s.next().ok_or_else(|| serde::de::Error::custom($err))?;
-			};
-		}
-		parse_part!(prefix, parts, "missing prefix");
-		parse_part!(ksuid, parts, "missing ksuid");
-
-		Ok(Self {
-			prefix: prefix.to_string(),
-			ksuid: Ksuid::from_str(ksuid).map_err(serde::de::Error::custom)?,
-		})
-	}
-}
-
 impl Pksuid {
 	pub fn new(prefix: String) -> Self {
 		Self {
@@ -134,7 +80,7 @@ impl Pksuid {
 }
 
 impl FromStr for Pksuid {
-	type Err = Box<dyn std::error::Error + Send + Sync + 'static>;
+	type Err = BoxDynError;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		let mut parts = s.split('_');
@@ -145,5 +91,11 @@ impl FromStr for Pksuid {
 			prefix: prefix.to_string(),
 			ksuid: Ksuid::from_str(ksuid)?,
 		})
+	}
+}
+
+impl Into<Vec<u8>> for Pksuid {
+	fn into(self) -> Vec<u8> {
+		self.to_string().into_bytes()
 	}
 }

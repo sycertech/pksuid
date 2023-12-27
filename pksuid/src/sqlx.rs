@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::str::FromStr;
 
 use sqlx::encode::IsNull;
@@ -19,7 +20,9 @@ impl Type<Postgres> for Pksuid {
 
 impl Encode<'_, Postgres> for Pksuid {
 	fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
-		<String as Encode<Postgres>>::encode(self.to_string(), buf)
+		write!(**buf, "{}", self).expect("unexpected error from `Display::fmt()`");
+
+		IsNull::No
 	}
 }
 

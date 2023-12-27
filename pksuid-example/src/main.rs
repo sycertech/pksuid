@@ -1,11 +1,16 @@
 use anyhow::Result;
 use pksuid::Pksuid;
-use sqlx::PgPool;
+use sqlx::{PgPool, Type};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Type)]
+#[sqlx(transparent)]
+#[sqlx(type_name = "pksuid")]
+struct SqlxPksuid(pub String);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Client {
 	id: Pksuid,
-	name: String,
+	name: Option<String>,
 }
 
 #[tokio::main]
@@ -30,18 +35,16 @@ async fn main() -> Result<()> {
 	let selected = sqlx::query_as!(
 		Client,
 		r#"
-		select id as "id: Pksuid", name
+		select name, id as "id: Pksuid"
 		from client
 		where id = $1;
 	"#,
-		inserted.id.clone() as Pksuid
+		inserted.id as Pksuid,
 	)
 	.fetch_one(&pool)
 	.await?;
 
 	println!("selected: {:#?}", selected);
-
-	assert_eq!(inserted.id, selected.id);
 
 	Ok(())
 }

@@ -18,9 +18,12 @@ args = ["run", "-q"]
 watch = true
 
 [tasks.run-extension]
-install_crate = "cargo-pgrx"
-command = "cargo"
-args = ["pgrx", "run", "-p", "pksuid-extension"]
+script = '''
+	cargo pgrx run -p pgrx-extension
+'''
+# install_crate = "cargo-pgrx"
+# command = "cargo"
+# args = ["pgrx", "run", "-p", "pksuid-extension"]
 
 [tasks.lint]
 install_crate = "clippy"

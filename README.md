@@ -16,6 +16,7 @@ postgres=# select pksuid_generate('client');
 postgres=#
 postgres=#
 postgres=# create table if not exists client(
+    -- todo: type `pksuid`
     id pksuid primary key default pksuid_generate('client'),
     name text
 );
