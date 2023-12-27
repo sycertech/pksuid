@@ -32,31 +32,31 @@ fn pksuid_send(input: Pksuid) -> Vec<u8> {
 }
 
 #[pg_extern(immutable, parallel_safe, requires = ["shell_type"])]
-fn pksuid_receive(internal: pgrx::Internal) -> Pksuid {
+fn pksuid_receive(internal: pgrx::Internal) -> Result<Pksuid, BoxDynError> {
 	let string_info = unsafe {
-		let data = internal.get_mut::<StringInfoData>();
-		StringInfo::from_pg(data.unwrap())
-	}
-	.unwrap();
+		let data = internal
+			.get_mut::<StringInfoData>()
+			.expect("internal doesnt point to StringInfoData");
+		StringInfo::from_pg(data).expect("pointer is invalid")
+	};
 
-	Pksuid::from_str(&string_info.to_string()).unwrap()
+	Pksuid::from_str(&string_info.to_string())
 }
 
 extension_sql!("CREATE TYPE pksuid; -- shell type", name = "shell_type", bootstrap);
 
 extension_sql!(
 	r#"
-		create type pksuid (
-			input = pksuid_in,
-			output = pksuid_out,
-			receive = pksuid_receive,
-			send = pksuid_send,
-			like = text
-		);
-	"#,
+create type pksuid (
+	input = pksuid_in,
+	output = pksuid_out,
+	receive = pksuid_receive,
+	send = pksuid_send,
+	like = text
+);"#,
 	name = "concrete_type",
 	creates = [Type(Pksuid)],
-	requires = ["shell_type", pksuid_in, pksuid_out, pksuid_receive, pksuid_send],
+	requires = ["shell_type", pksuid_in, pksuid_out, pksuid_send, pksuid_receive],
 );
 
 #[cfg(not(feature = "no-schema-generation"))]

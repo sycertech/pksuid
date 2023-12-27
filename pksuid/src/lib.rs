@@ -6,7 +6,7 @@ use error::BoxDynError;
 use svix_ksuid::{Ksuid, KsuidLike};
 
 pub mod error;
-#[cfg(feature = "sqlx")]
+// #[cfg(feature = "sqlx")]
 pub mod sqlx;
 
 pub mod serde;
